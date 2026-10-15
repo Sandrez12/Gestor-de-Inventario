@@ -1,28 +1,11 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Crear Proveedor</h2>
-    </x-slot>
+<x-ui.page title="Nuevo proveedor">
+    <form method="POST" action="{{ route('proveedores.store') }}" class="max-w-2xl space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        @csrf
+        @include('proveedores._form', ['proveedor' => null])
 
-    <div class="py-4 px-6">
-        <a href="{{ route('home') }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
-            ← Volver al inicio
-        </a>
-        
-        <form method="POST" action="{{ route('proveedores.store') }}" class="bg-white p-6 rounded shadow-md">
-            @csrf
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Nombre</label>
-                <input type="text" name="nombre" required class="w-full mt-1 p-2 border rounded">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Teléfono</label>
-                <input type="text" name="telefono" required class="w-full mt-1 p-2 border rounded">
-            </div>
-
-            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Guardar</button>
-            <a href="{{ route('proveedores.index') }}" class="ml-2 text-gray-600 hover:underline">Cancelar</a>
-        </form>
-    </div>
-</x-app-layout>
+        <div class="flex items-center gap-3 pt-2">
+            <x-ui.button type="submit">Guardar</x-ui.button>
+            <x-ui.button :href="route('proveedores.index')" variant="secondary">Cancelar</x-ui.button>
+        </div>
+    </form>
+</x-ui.page>

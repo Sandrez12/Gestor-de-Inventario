@@ -1,54 +1,42 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Proveedores</h2>
+<x-ui.page title="Proveedores" subtitle="Gestiona tus proveedores.">
+    <x-slot name="actions">
+        <x-ui.button :href="route('proveedores.eliminados')" variant="secondary">Papelera</x-ui.button>
+        <x-ui.button :href="route('proveedores.create')">Nuevo proveedor</x-ui.button>
     </x-slot>
 
-    <div class="py-4 px-6">
-        <a href="{{ route('proveedores.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4 inline-block">
-            Crear Proveedor
-        </a>
-        <a href="{{ route('proveedores.eliminados') }}" class="ml-2 bg-gray-600 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded">
-            Ver Eliminados
-        </a>
-        <a href="{{ route('home') }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
-            ← Volver al inicio
-        </a>
-        
+    <x-ui.search :action="route('proveedores.index')" :q="$q ?? null" />
 
-        <div class="mt-6 bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="min-w-full table-auto text-center">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Teléfono</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($proveedores as $proveedor)
-                        <tr class="border-t">
-                            <td>{{ $proveedor->id }}</td>
-                            <td>{{ $proveedor->nombre }}</td>
-                            <td>{{ $proveedor->telefono }}</td>
-                            <td class="flex justify-center gap-2 py-2">
-                                <a href="{{ route('proveedores.edit', $proveedor) }}" class="bg-yellow-400 text-white px-3 py-1 rounded hover:bg-yellow-500">Editar</a>
-
-                                <form action="{{ route('proveedores.destroy', $proveedor) }}" method="POST" onsubmit="return confirm('¿Eliminar este proveedor?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">Eliminar</button>
+    <x-ui.table>
+            <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <tr>
+                    <th scope="col" class="px-4 py-3 ">Proveedor</th>
+                    <th scope="col" class="px-4 py-3 ">Contacto</th>
+                    <th scope="col" class="px-4 py-3 ">Dirección</th>
+                    <th scope="col" class="px-4 py-3 text-right">Acciones</th>
+                </tr>
+            </thead>
+        <tbody class="divide-y divide-gray-100">
+            @forelse ($registros as $r)
+                <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 "><div class="font-semibold text-gray-900">{{ $r->nombre }}</div></td>
+                        <td class="px-4 py-3 ">@if ($r->email)<div>{{ $r->email }}</div>@endif
+                            @if ($r->telefono)<div class="text-xs text-gray-500">{{ $r->telefono }}</div>@endif</td>
+                        <td class="px-4 py-3 text-gray-600">{{ $r->direccion ?: "—" }}</td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <div class="flex justify-end gap-2">
+                                <x-ui.button :href="route('proveedores.edit', $r)" variant="secondary" class="!px-3 !py-1.5">Editar</x-ui.button>
+                                <form method="POST" action="{{ route('proveedores.destroy', $r) }}" onsubmit="return confirm('¿Enviar este proveedor a la papelera?');">
+                                    @csrf @method('DELETE')
+                                    <x-ui.button type="submit" variant="danger" class="!px-3 !py-1.5">Eliminar</x-ui.button>
                                 </form>
-                            </td>
-                        </tr>
-                    @endforeach
-                    @if ($proveedores->isEmpty())
-                        <tr>
-                            <td colspan="4" class="py-4">No hay proveedores registrados.</td>
-                        </tr>
-                    @endif
-                </tbody>
-            </table>
-        </div>
-    </div>
-</x-app-layout>
+                            </div>
+                        </td>
+                </tr>
+            @empty
+                <x-ui.empty :cols="4" text="Aún no hay registros. ¡Crea el primero!" />
+            @endforelse
+        </tbody>
+    </x-ui.table>
+
+    {{ $registros->links() }}
+</x-ui.page>

@@ -2,127 +2,96 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Salida;
-use App\Models\Producto;
+use App\Exceptions\InsufficientStockException;
+use App\Http\Requests\MovimientoRequest;
 use App\Models\Cliente;
-use Illuminate\Http\Request;
+use App\Models\Producto;
+use App\Models\Salida;
+use App\Services\StockService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class SalidaController extends Controller
 {
-    public function index()
+    public function __construct(private readonly StockService $stock) {}
+
+    public function index(): View
     {
-        $salidas = Salida::with(['producto', 'cliente'])->get();
-        return view('salidas.index', compact('salidas'));
+        $registros = Salida::with(['producto', 'cliente'])->latest()->paginate(10);
+
+        return view('salidas.index', compact('registros'));
     }
 
-    public function create()
+    public function create(): View
     {
-        $productos = Producto::all();
-        $clientes = Cliente::all();
-        return view('salidas.create', compact('productos', 'clientes'));
+        return view('salidas.create', $this->opciones());
     }
 
-    public function store(Request $request)
+    public function store(MovimientoRequest $request): RedirectResponse
     {
-        $request->validate([
-            'producto_id' => 'required|exists:productos,id',
-            'cliente_id' => 'required|exists:clientes,id',
-            'cantidad' => 'required|integer|min:1',
-        ]);
-
-        $producto = Producto::findOrFail($request->producto_id);
-
-        if ($request->cantidad > $producto->stock) {
-            return redirect()->back()->withErrors(['cantidad' => 'No hay suficiente stock disponible.']);
+        try {
+            $this->stock->registrarSalida($request->validated());
+        } catch (InsufficientStockException $e) {
+            return back()->withInput()->withErrors(['cantidad' => $e->getMessage()]);
         }
-
-        // Registrar salida
-        $salida = Salida::create($request->all());
-
-        // Disminuir stock
-        $producto->stock -= $request->cantidad;
-        $producto->save();
 
         return redirect()->route('salidas.index')->with('success', 'Salida registrada y stock actualizado.');
     }
 
-    public function edit(Salida $salida)
+    public function edit(Salida $salida): View
     {
-        $productos = Producto::all();
-        $clientes = Cliente::all();
-        return view('salidas.edit', compact('salida', 'productos', 'clientes'));
+        return view('salidas.edit', $this->opciones() + ['salida' => $salida]);
     }
 
-    public function update(Request $request, Salida $salida)
+    public function update(MovimientoRequest $request, Salida $salida): RedirectResponse
     {
-        $request->validate([
-            'producto_id' => 'required|exists:productos,id',
-            'cliente_id' => 'required|exists:clientes,id',
-            'cantidad' => 'required|integer|min:1',
-        ]);
-
-        // Revertir stock anterior
-        $productoAnterior = Producto::findOrFail($salida->producto_id);
-        $productoAnterior->stock += $salida->cantidad;
-        $productoAnterior->save();
-
-        // Validar nuevo stock disponible
-        $productoNuevo = Producto::findOrFail($request->producto_id);
-        if ($request->cantidad > $productoNuevo->stock) {
-            return redirect()->back()->withErrors(['cantidad' => 'No hay suficiente stock disponible.']);
+        try {
+            $this->stock->actualizarSalida($salida, $request->validated());
+        } catch (InsufficientStockException $e) {
+            return back()->withInput()->withErrors(['cantidad' => $e->getMessage()]);
         }
-
-        // Actualizar salida
-        $salida->update($request->all());
-
-        // Disminuir nuevo stock
-        $productoNuevo->stock -= $request->cantidad;
-        $productoNuevo->save();
 
         return redirect()->route('salidas.index')->with('success', 'Salida actualizada y stock ajustado.');
     }
 
-    public function destroy(Salida $salida)
+    public function destroy(Salida $salida): RedirectResponse
     {
-        // Reponer stock
-        $producto = Producto::findOrFail($salida->producto_id);
-        $producto->stock += $salida->cantidad;
-        $producto->save();
-
-        $salida->delete();
+        $this->stock->eliminarSalida($salida);
 
         return redirect()->route('salidas.index')->with('success', 'Salida eliminada y stock restaurado.');
     }
 
-    public function eliminados()
+    public function eliminados(): View
     {
-        $salidas = Salida::onlyTrashed()->with(['producto', 'cliente'])->get();
-        return view('salidas.eliminados', compact('salidas'));
+        $registros = Salida::onlyTrashed()->with(['producto', 'cliente'])->latest('deleted_at')->paginate(10);
+
+        return view('salidas.eliminados', compact('registros'));
     }
 
-    public function restore($id)
+    public function restore(int $id): RedirectResponse
     {
-        $salida = Salida::onlyTrashed()->findOrFail($id);
-
-        // Validar stock para restaurar
-        $producto = Producto::findOrFail($salida->producto_id);
-        if ($salida->cantidad > $producto->stock) {
-            return redirect()->back()->withErrors(['restore' => 'No hay suficiente stock para restaurar la salida.']);
+        try {
+            $this->stock->restaurarSalida(Salida::onlyTrashed()->findOrFail($id));
+        } catch (InsufficientStockException $e) {
+            return back()->withErrors(['restore' => $e->getMessage()]);
         }
-
-        // Restaurar salida y ajustar stock
-        $salida->restore();
-        $producto->stock -= $salida->cantidad;
-        $producto->save();
 
         return redirect()->route('salidas.index')->with('success', 'Salida restaurada y stock ajustado.');
     }
 
-    public function forceDelete($id)
+    public function forceDelete(int $id): RedirectResponse
     {
-        $salida = Salida::onlyTrashed()->findOrFail($id);
-        $salida->forceDelete();
+        Salida::onlyTrashed()->findOrFail($id)->forceDelete();
 
-        return redirect()->route('salidas.eliminados')->with('success', 'Salida eliminada permanentemente.');
+        return redirect()->route('salidas.eliminados')->with('success', 'Salida eliminada de forma permanente.');
+    }
+
+    /** @return array<string, mixed> */
+    private function opciones(): array
+    {
+        return [
+            'productos' => Producto::orderBy('nombre')->get(['id', 'nombre', 'stock']),
+            'clientes' => Cliente::orderBy('nombre')->get(['id', 'nombre']),
+        ];
     }
 }

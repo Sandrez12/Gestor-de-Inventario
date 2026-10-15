@@ -6,6 +6,15 @@
 
         <x-validation-errors class="mb-4" />
 
+        @if (config('app.demo'))
+            <div class="mb-5 rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900">
+                <p class="font-semibold">Modo demostración</p>
+                <p class="mt-1">Explora la aplicación con datos de ejemplo. Los cambios se reinician con cada despliegue.</p>
+                <a href="{{ route('demo') }}" class="mt-3 inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700">Entrar como usuario demo</a>
+                <p class="mt-2 text-xs text-indigo-700">O inicia sesión con <code>demo@gestor.test</code> / <code>demo1234</code></p>
+            </div>
+        @endif
+
         @if (session('status'))
             <div class="mb-4 font-medium text-sm text-green-600">
                 {{ session('status') }}

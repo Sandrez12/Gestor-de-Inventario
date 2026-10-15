@@ -1,36 +1,11 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Editar Producto</h2>
-    </x-slot>
+<x-ui.page title="Editar producto">
+    <form method="POST" action="{{ route('productos.update', $producto) }}" class="max-w-2xl space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        @csrf @method('PUT')
+        @include('productos._form', ['producto' => $producto])
 
-    <div class="py-4 px-6">
-        <a href="{{ route('home') }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
-            ← Volver al inicio
-        </a>        
-
-        <form action="{{ route('productos.update', $producto->id) }}" method="POST">
-            @csrf
-            @method('PUT')    
-            <div class="mb-4">
-                <label class="block text-gray-700">Nombre</label>
-                <input type="text" name="nombre" value="{{ $producto->nombre }}" required class="w-full mt-1 p-2 border rounded">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Descripción</label>
-                <textarea name="descripcion" rows="3" required class="w-full mt-1 p-2 border rounded">{{ $producto->descripcion }}</textarea>
-            </div>
-
-            <div class="mb-4">
-                <label for="stock" class="block text-gray-700 font-bold mb-2">Stock</label>
-                <input type="number" name="stock" id="stock" value="{{ old('stock', $producto->stock) }}"
-                    class="w-full px-3 py-2 border rounded">
-            </div>
-
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                Actualizar
-            </button>
-            <a href="{{ route('productos.index') }}" class="ml-2 text-gray-600 hover:underline">Cancelar</a>
-        </form>
-    </div>
-</x-app-layout>
+        <div class="flex items-center gap-3 pt-2">
+            <x-ui.button type="submit">Guardar cambios</x-ui.button>
+            <x-ui.button :href="route('productos.index')" variant="secondary">Cancelar</x-ui.button>
+        </div>
+    </form>
+</x-ui.page>

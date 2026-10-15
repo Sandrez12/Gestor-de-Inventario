@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: sqlite3, pdo_sqlite
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: vendor/bin/pint --test
+      - run: php artisan test
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t gestor .
+      - name: La imagen arranca, migra y responde en modo demo
+        run: |
+          docker run -d --name app -p 8080:80 -e DEMO_MODE=true gestor
+          for i in $(seq 1 30); do
+            curl -fs http://localhost:8080/up && break
+            sleep 2
+          done
+          curl -fs http://localhost:8080/login | grep -q "Modo demostración"
+          curl -fsL -c jar -b jar http://localhost:8080/demo | grep -q "Últimos movimientos"
+          docker logs app

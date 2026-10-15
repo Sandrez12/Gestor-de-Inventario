@@ -1,34 +1,11 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Editar Cliente</h2>
-    </x-slot>
+<x-ui.page title="Editar cliente">
+    <form method="POST" action="{{ route('clientes.update', $cliente) }}" class="max-w-2xl space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        @csrf @method('PUT')
+        @include('clientes._form', ['cliente' => $cliente])
 
-    <div class="py-4 px-6">
-        <a href="{{ route('home') }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
-            ← Volver al inicio
-        </a>
-        
-        <form method="POST" action="{{ route('clientes.update', $cliente) }}" class="bg-white p-6 rounded shadow-md">
-            @csrf
-            @method('PUT')
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Nombre</label>
-                <input type="text" name="nombre" value="{{ $cliente->nombre }}" required class="w-full mt-1 p-2 border rounded">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Email</label>
-                <input type="email" name="email" value="{{ $cliente->email }}" required class="w-full mt-1 p-2 border rounded">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Teléfono</label>
-                <input type="text" name="telefono" value="{{ $cliente->telefono }}" required class="w-full mt-1 p-2 border rounded">
-            </div>
-
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Actualizar</button>
-            <a href="{{ route('clientes.index') }}" class="ml-2 text-gray-600 hover:underline">Cancelar</a>
-        </form>
-    </div>
-</x-app-layout>
+        <div class="flex items-center gap-3 pt-2">
+            <x-ui.button type="submit">Guardar cambios</x-ui.button>
+            <x-ui.button :href="route('clientes.index')" variant="secondary">Cancelar</x-ui.button>
+        </div>
+    </form>
+</x-ui.page>

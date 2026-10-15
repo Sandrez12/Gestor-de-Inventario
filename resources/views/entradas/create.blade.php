@@ -1,42 +1,11 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Registrar Entrada</h2>
-    </x-slot>
-    <a href="{{ route('home') }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
-        ← Volver al inicio
-    </a>
-    
-    
-        <form action="{{ route('entradas.store') }}" method="POST" class="bg-white p-6 rounded shadow-md">
-            @csrf
+<x-ui.page title="Registrar entrada" subtitle="El stock del producto aumentará.">
+    <form method="POST" action="{{ route('entradas.store') }}" class="max-w-2xl space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        @csrf
+        @include('entradas._form', ['entrada' => null])
 
-            <div class="mb-4">
-                <label class="block text-gray-700">Producto</label>
-                <select name="producto_id" required class="w-full mt-1 p-2 border rounded">
-                    <option value="">Seleccione un producto</option>
-                    @foreach ($productos as $producto)
-                        <option value="{{ $producto->id }}">{{ $producto->nombre }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Proveedor</label>
-                <select name="proveedor_id" required class="w-full mt-1 p-2 border rounded">
-                    <option value="">Seleccione un proveedor</option>
-                    @foreach ($proveedores as $proveedor)
-                        <option value="{{ $proveedor->id }}">{{ $proveedor->nombre }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Cantidad</label>
-                <input type="number" name="cantidad" required class="w-full mt-1 p-2 border rounded">
-            </div>
-
-            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Guardar</button>
-            <a href="{{ route('entradas.index') }}" class="ml-2 text-gray-600 hover:underline">Cancelar</a>
-        </form>
-    </div>
-</x-app-layout>
+        <div class="flex items-center gap-3 pt-2">
+            <x-ui.button type="submit">Registrar</x-ui.button>
+            <x-ui.button :href="route('entradas.index')" variant="secondary">Cancelar</x-ui.button>
+        </div>
+    </form>
+</x-ui.page>

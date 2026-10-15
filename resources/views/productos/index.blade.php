@@ -1,61 +1,46 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Productos</h2>
+<x-ui.page title="Productos" subtitle="Catálogo y existencias actuales.">
+    <x-slot name="actions">
+        <x-ui.button :href="route('productos.eliminados')" variant="secondary">Papelera</x-ui.button>
+        <x-ui.button :href="route('productos.create')">Nuevo producto</x-ui.button>
     </x-slot>
 
-    <div class="py-4 px-6">
-        <a href="{{ route('home') }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
-            ← Volver al inicio
-        </a>
-        
-        <a href="{{ route('productos.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4 inline-block">
-            Crear Producto
-        </a>
-        <a href="{{ route('productos.eliminados') }}" class="ml-2 bg-gray-600 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded">
-            Ver Eliminados
-        </a>
-        
-        <div class="mt-6 bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="min-w-full table-auto text-center">
-                <thead class="bg-gray-100">
-                    @if (session('success'))
-                    <div class="bg-green-100 text-green-700 p-2 rounded mb-4">
-                        {{ session('success') }}
-                    </div>
-                @endif
-                    <tr>
-                        <th class="px-4 py-2">ID</th>
-                        <th>Nombre</th>
-                        <th>Descripción</th>
-                        <th>Cantidad</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($productos as $producto)
-                        <tr class="border-t">
-                            <td class="px-4 py-2">{{ $producto->id }}</td>
-                            <td>{{ $producto->nombre }}</td>
-                            <td>{{ $producto->descripcion }}</td>
-                            <td>{{ $producto->stock }}</td>
-                            <td class="flex justify-center gap-2 py-2">
-                                <a href="{{ route('productos.edit', $producto) }}" class="bg-yellow-400 text-white px-3 py-1 rounded hover:bg-yellow-500">Editar</a>
+    <x-ui.search :action="route('productos.index')" :q="$q ?? null" />
 
-                                <form action="{{ route('productos.destroy', $producto) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este producto?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">Eliminar</button>
+    <x-ui.table>
+            <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <tr>
+                    <th scope="col" class="px-4 py-3 ">Producto</th>
+                    <th scope="col" class="px-4 py-3 ">Estado</th>
+                    <th scope="col" class="px-4 py-3 text-right">Stock</th>
+                    <th scope="col" class="px-4 py-3 text-right">Acciones</th>
+                </tr>
+            </thead>
+        <tbody class="divide-y divide-gray-100">
+            @forelse ($registros as $r)
+                <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 "><div class="font-semibold text-gray-900">{{ $r->nombre }}</div>
+                            @if ($r->descripcion)<div class="max-w-md truncate text-xs text-gray-500">{{ $r->descripcion }}</div>@endif</td>
+                        <td class="px-4 py-3 ">@if ($r->stock_bajo)
+                                <x-ui.badge :tone="$r->stock === 0 ? 'red' : 'amber'">{{ $r->stock === 0 ? 'Agotado' : 'Stock bajo' }}</x-ui.badge>
+                            @else
+                                <x-ui.badge tone="green">Disponible</x-ui.badge>
+                            @endif</td>
+                        <td class="px-4 py-3 text-right"><span class="font-semibold tabular-nums">{{ $r->stock }}</span></td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <div class="flex justify-end gap-2">
+                                <x-ui.button :href="route('productos.edit', $r)" variant="secondary" class="!px-3 !py-1.5">Editar</x-ui.button>
+                                <form method="POST" action="{{ route('productos.destroy', $r) }}" onsubmit="return confirm('¿Enviar este producto a la papelera?');">
+                                    @csrf @method('DELETE')
+                                    <x-ui.button type="submit" variant="danger" class="!px-3 !py-1.5">Eliminar</x-ui.button>
                                 </form>
-                            </td>
-                        </tr>
-                    @endforeach
-                    @if ($productos->isEmpty())
-                        <tr>
-                            <td colspan="6" class="py-4">No hay productos registrados.</td>
-                        </tr>
-                    @endif
-                </tbody>
-            </table>
-        </div>
-    </div>
-</x-app-layout>
+                            </div>
+                        </td>
+                </tr>
+            @empty
+                <x-ui.empty :cols="4" text="Aún no hay registros. ¡Crea el primero!" />
+            @endforelse
+        </tbody>
+    </x-ui.table>
+
+    {{ $registros->links() }}
+</x-ui.page>

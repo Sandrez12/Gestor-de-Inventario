@@ -2,74 +2,70 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\UsaPapelera;
+use App\Http\Requests\ContactoRequest;
 use App\Models\Cliente;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class ClienteController extends Controller
 {
-    public function index()
+    use UsaPapelera;
+
+    protected function modelo(): string
     {
-        $clientes = Cliente::all();
-        return view('clientes.index', compact('clientes'));
+        return Cliente::class;
     }
 
-    public function create()
+    protected function prefijo(): string
+    {
+        return 'clientes';
+    }
+
+    protected function etiqueta(): string
+    {
+        return 'El cliente';
+    }
+
+    public function index(Request $request): View
+    {
+        $clientes = Cliente::buscar($request->query('q'))
+            ->orderBy('nombre')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('clientes.index', ['registros' => $clientes, 'q' => $request->query('q')]);
+    }
+
+    public function create(): View
     {
         return view('clientes.create');
     }
 
-    public function store(Request $request)
+    public function store(ContactoRequest $request): RedirectResponse
     {
-        $request->validate([
-            'nombre' => 'required|string|max:255',
-            'correo' => 'nullable|email|max:255',
-            'telefono' => 'nullable|string|max:20',
-        ]);
+        Cliente::create($request->validated());
 
-        Cliente::create($request->all());
-
-        return redirect()->route('clientes.index')->with('success', 'Cliente creado exitosamente.');
+        return redirect()->route('clientes.index')->with('success', 'Cliente creado correctamente.');
     }
 
-    public function edit(Cliente $cliente)
+    public function edit(Cliente $cliente): View
     {
         return view('clientes.edit', compact('cliente'));
     }
 
-    public function update(Request $request, Cliente $cliente)
+    public function update(ContactoRequest $request, Cliente $cliente): RedirectResponse
     {
-        $request->validate([
-            'nombre' => 'required|string|max:255',
-            'correo' => 'nullable|email|max:255',
-            'telefono' => 'nullable|string|max:20',
-        ]);
+        $cliente->update($request->validated());
 
-        $cliente->update($request->all());
-
-        return redirect()->route('clientes.index')->with('success', 'Cliente actualizado exitosamente.');
+        return redirect()->route('clientes.index')->with('success', 'Cliente actualizado correctamente.');
     }
 
-    public function destroy(Cliente $cliente)
+    public function destroy(Cliente $cliente): RedirectResponse
     {
         $cliente->delete();
-        return redirect()->route('clientes.index')->with('success', 'Cliente eliminado.');
-    }
 
-    public function eliminados()
-    {
-        $clientes = Cliente::onlyTrashed()->get();
-        return view('clientes.eliminados', compact('clientes'));
-    }
-
-    public function restore($id)
-    {
-        Cliente::onlyTrashed()->findOrFail($id)->restore();
-        return redirect()->route('clientes.index')->with('success', 'Cliente restaurado.');
-    }
-
-    public function forceDelete($id)
-    {
-        Cliente::onlyTrashed()->findOrFail($id)->forceDelete();
-        return redirect()->route('clientes.eliminados')->with('success', 'Cliente eliminado permanentemente.');
+        return redirect()->route('clientes.index')->with('success', 'Cliente enviado a la papelera.');
     }
 }

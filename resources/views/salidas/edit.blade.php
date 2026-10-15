@@ -1,42 +1,11 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Editar Salida</h2>
-    </x-slot>
+<x-ui.page title="Editar salida" subtitle="Al guardar, el stock se recalcula con los nuevos datos.">
+    <form method="POST" action="{{ route('salidas.update', $salida) }}" class="max-w-2xl space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        @csrf @method('PUT')
+        @include('salidas._form', ['salida' => $salida])
 
-    <div class="py-4 px-6">
-        <a href="{{ route('home') }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
-            ← Volver al inicio
-        </a>
-        
-        <form action="{{ route('salidas.update', $salida) }}" method="POST" class="bg-white p-6 rounded shadow-md">
-            @csrf
-            @method('PUT')
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Producto</label>
-                <select name="producto_id" required class="w-full mt-1 p-2 border rounded">
-                    @foreach ($productos as $producto)
-                        <option value="{{ $producto->id }}" @selected($producto->id == $salida->producto_id)>{{ $producto->nombre }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Cliente</label>
-                <select name="cliente_id" required class="w-full mt-1 p-2 border rounded">
-                    @foreach ($clientes as $cliente)
-                        <option value="{{ $cliente->id }}" @selected($cliente->id == $salida->cliente_id)>{{ $cliente->nombre }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700">Cantidad</label>
-                <input type="number" name="cantidad" value="{{ $salida->cantidad }}" required class="w-full mt-1 p-2 border rounded">
-            </div>
-
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Actualizar</button>
-            <a href="{{ route('salidas.index') }}" class="ml-2 text-gray-600 hover:underline">Cancelar</a>
-        </form>
-    </div>
-</x-app-layout>
+        <div class="flex items-center gap-3 pt-2">
+            <x-ui.button type="submit">Guardar cambios</x-ui.button>
+            <x-ui.button :href="route('salidas.index')" variant="secondary">Cancelar</x-ui.button>
+        </div>
+    </form>
+</x-ui.page>

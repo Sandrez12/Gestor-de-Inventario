@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: gestor-de-inventario
+    runtime: docker
+    plan: free
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_NAME
+        value: Gestor de Inventario
+      - key: APP_LOCALE
+        value: es
+      # Demostración pública con SQLite: los datos se reinician en cada despliegue.
+      # Para usarlo con datos reales, pon DEMO_MODE=false y conecta una base de datos persistente.
+      - key: DEMO_MODE
+        value: "true"
+      - key: DB_CONNECTION
+        value: sqlite

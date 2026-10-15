@@ -1,57 +1,41 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Entradas</h2>
+<x-ui.page title="Entradas" subtitle="Compras a proveedores: suman al stock.">
+    <x-slot name="actions">
+        <x-ui.button :href="route('entradas.eliminados')" variant="secondary">Papelera</x-ui.button>
+        <x-ui.button :href="route('entradas.create')">Registrar entrada</x-ui.button>
     </x-slot>
 
-    <div class="py-4 px-6">
-        <a href="{{ route('home') }}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4">
-            ← Volver al inicio
-        </a>    
-        <a href="{{ route('entradas.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4 inline-block">
-            Registrar Entrada
-        </a>
-        <a href="{{ route('entradas.eliminados') }}" class="ml-2 bg-gray-600 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded">
-            Ver Eliminadas
-        </a>
-        
-
-        <div class="mt-6 bg-white shadow-md rounded-lg overflow-hidden">
-            <table class="min-w-full table-auto text-center">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th>ID</th>
-                        <th>Producto</th>
-                        <th>Proveedor</th>
-                        <th>Cantidad</th>
-                        <th>Fecha</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($entradas as $entrada)
-                        <tr class="border-t">
-                            <td>{{ $entrada->id }}</td>
-                            <td>{{ $entrada->producto->nombre }}</td>
-                            <td>{{ $entrada->proveedor->nombre }}</td>
-                            <td>{{ $entrada->cantidad }}</td>
-                            <td>{{ $entrada->created_at->format('d/m/Y') }}</td>
-                            <td class="flex justify-center gap-2 py-2">
-                                <a href="{{ route('entradas.edit', $entrada) }}" class="bg-yellow-400 text-white px-3 py-1 rounded hover:bg-yellow-500">Editar</a>
-                                <form action="{{ route('entradas.destroy', $entrada) }}" method="POST" onsubmit="return confirm('¿Eliminar esta entrada?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">Eliminar</button>
+    <x-ui.table>
+            <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <tr>
+                    <th scope="col" class="px-4 py-3 ">Fecha</th>
+                    <th scope="col" class="px-4 py-3 ">Producto</th>
+                    <th scope="col" class="px-4 py-3 ">Proveedor</th>
+                    <th scope="col" class="px-4 py-3 text-right">Cantidad</th>
+                    <th scope="col" class="px-4 py-3 text-right">Acciones</th>
+                </tr>
+            </thead>
+        <tbody class="divide-y divide-gray-100">
+            @forelse ($registros as $r)
+                <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ $r->created_at->format("d/m/Y H:i") }}</td>
+                        <td class="px-4 py-3 "><span class="font-semibold text-gray-900">{{ $r->producto?->nombre }}</span></td>
+                        <td class="px-4 py-3 ">{{ $r->proveedor?->nombre }}</td>
+                        <td class="px-4 py-3 text-right"><x-ui.badge tone="green">+{{ $r->cantidad }}</x-ui.badge></td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <div class="flex justify-end gap-2">
+                                <x-ui.button :href="route('entradas.edit', $r)" variant="secondary" class="!px-3 !py-1.5">Editar</x-ui.button>
+                                <form method="POST" action="{{ route('entradas.destroy', $r) }}" onsubmit="return confirm('¿Eliminar esta entrada? El stock se ajustará.');">
+                                    @csrf @method('DELETE')
+                                    <x-ui.button type="submit" variant="danger" class="!px-3 !py-1.5">Eliminar</x-ui.button>
                                 </form>
-                            </td>
-                        </tr>
-                    @endforeach
-                    @if ($entradas->isEmpty())
-                        <tr>
-                            <td colspan="6" class="py-4">No hay entradas registradas.</td>
-                        </tr>
-                    @endif
-                </tbody>
-            </table>
-        </div>
-    </div>
-</x-app-layout>
+                            </div>
+                        </td>
+                </tr>
+            @empty
+                <x-ui.empty :cols="5" text="Aún no hay registros. ¡Crea el primero!" />
+            @endforelse
+        </tbody>
+    </x-ui.table>
+
+    {{ $registros->links() }}
+</x-ui.page>

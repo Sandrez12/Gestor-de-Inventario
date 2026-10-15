@@ -2,74 +2,70 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\UsaPapelera;
+use App\Http\Requests\ContactoRequest;
 use App\Models\Proveedor;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class ProveedorController extends Controller
 {
-    public function index()
+    use UsaPapelera;
+
+    protected function modelo(): string
     {
-        $proveedores = Proveedor::all();
-        return view('proveedores.index', compact('proveedores'));
+        return Proveedor::class;
     }
 
-    public function create()
+    protected function prefijo(): string
+    {
+        return 'proveedores';
+    }
+
+    protected function etiqueta(): string
+    {
+        return 'El proveedor';
+    }
+
+    public function index(Request $request): View
+    {
+        $proveedores = Proveedor::buscar($request->query('q'))
+            ->orderBy('nombre')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('proveedores.index', ['registros' => $proveedores, 'q' => $request->query('q')]);
+    }
+
+    public function create(): View
     {
         return view('proveedores.create');
     }
 
-    public function store(Request $request)
+    public function store(ContactoRequest $request): RedirectResponse
     {
-        $request->validate([
-            'nombre' => 'required|string|max:255',
-            'correo' => 'nullable|email|max:255',
-            'telefono' => 'nullable|string|max:20',
-        ]);
+        Proveedor::create($request->validated());
 
-        Proveedor::create($request->all());
-
-        return redirect()->route('proveedores.index')->with('success', 'Proveedor creado exitosamente.');
+        return redirect()->route('proveedores.index')->with('success', 'Proveedor creado correctamente.');
     }
 
-    public function edit(Proveedor $proveedor)
+    public function edit(Proveedor $proveedor): View
     {
         return view('proveedores.edit', compact('proveedor'));
     }
 
-    public function update(Request $request, Proveedor $proveedor)
+    public function update(ContactoRequest $request, Proveedor $proveedor): RedirectResponse
     {
-        $request->validate([
-            'nombre' => 'required|string|max:255',
-            'correo' => 'nullable|email|max:255',
-            'telefono' => 'nullable|string|max:20',
-        ]);
+        $proveedor->update($request->validated());
 
-        $proveedor->update($request->all());
-
-        return redirect()->route('proveedores.index')->with('success', 'Proveedor actualizado exitosamente.');
+        return redirect()->route('proveedores.index')->with('success', 'Proveedor actualizado correctamente.');
     }
 
-    public function destroy(Proveedor $proveedor)
+    public function destroy(Proveedor $proveedor): RedirectResponse
     {
         $proveedor->delete();
-        return redirect()->route('proveedores.index')->with('success', 'Proveedor eliminado.');
-    }
 
-    public function eliminados()
-    {
-        $proveedores = Proveedor::onlyTrashed()->get();
-        return view('proveedores.eliminados', compact('proveedores'));
-    }
-
-    public function restore($id)
-    {
-        Proveedor::onlyTrashed()->findOrFail($id)->restore();
-        return redirect()->route('proveedores.index')->with('success', 'Proveedor restaurado.');
-    }
-
-    public function forceDelete($id)
-    {
-        Proveedor::onlyTrashed()->findOrFail($id)->forceDelete();
-        return redirect()->route('proveedores.eliminados')->with('success', 'Proveedor eliminado permanentemente.');
+        return redirect()->route('proveedores.index')->with('success', 'Proveedor enviado a la papelera.');
     }
 }

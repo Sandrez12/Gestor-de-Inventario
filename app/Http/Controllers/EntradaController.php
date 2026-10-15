@@ -2,110 +2,92 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\InsufficientStockException;
+use App\Http\Requests\MovimientoRequest;
 use App\Models\Entrada;
 use App\Models\Producto;
 use App\Models\Proveedor;
-use Illuminate\Http\Request;
+use App\Services\StockService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class EntradaController extends Controller
 {
-    public function index()
+    public function __construct(private readonly StockService $stock) {}
+
+    public function index(): View
     {
-        $entradas = Entrada::with(['producto', 'proveedor'])->get();
-        return view('entradas.index', compact('entradas'));
+        $registros = Entrada::with(['producto', 'proveedor'])->latest()->paginate(10);
+
+        return view('entradas.index', compact('registros'));
     }
 
-    public function create()
+    public function create(): View
     {
-        $productos = Producto::all();
-        $proveedores = Proveedor::all();
-        return view('entradas.create', compact('productos', 'proveedores'));
+        return view('entradas.create', $this->opciones());
     }
 
-    public function store(Request $request)
+    public function store(MovimientoRequest $request): RedirectResponse
     {
-        $request->validate([
-            'producto_id' => 'required|exists:productos,id',
-            'proveedor_id' => 'required|exists:proveedores,id',
-            'cantidad' => 'required|integer|min:1',
-        ]);
-
-        $entrada = Entrada::create($request->all());
-
-        // Aumentar el stock del producto
-        $producto = Producto::findOrFail($request->producto_id);
-        $producto->stock += $request->cantidad;
-        $producto->save();
+        $this->stock->registrarEntrada($request->validated());
 
         return redirect()->route('entradas.index')->with('success', 'Entrada registrada y stock actualizado.');
     }
 
-    public function edit(Entrada $entrada)
+    public function edit(Entrada $entrada): View
     {
-        $productos = Producto::all();
-        $proveedores = Proveedor::all();
-        return view('entradas.edit', compact('entrada', 'productos', 'proveedores'));
+        return view('entradas.edit', $this->opciones() + ['entrada' => $entrada]);
     }
 
-    public function update(Request $request, Entrada $entrada)
+    public function update(MovimientoRequest $request, Entrada $entrada): RedirectResponse
     {
-        $request->validate([
-            'producto_id' => 'required|exists:productos,id',
-            'proveedor_id' => 'required|exists:proveedores,id',
-            'cantidad' => 'required|integer|min:1',
-        ]);
-
-        // Revertir stock anterior
-        $productoAnterior = Producto::findOrFail($entrada->producto_id);
-        $productoAnterior->stock -= $entrada->cantidad;
-        $productoAnterior->save();
-
-        // Actualizar entrada
-        $entrada->update($request->all());
-
-        // Aplicar nuevo stock
-        $productoNuevo = Producto::findOrFail($request->producto_id);
-        $productoNuevo->stock += $request->cantidad;
-        $productoNuevo->save();
+        try {
+            $this->stock->actualizarEntrada($entrada, $request->validated());
+        } catch (InsufficientStockException $e) {
+            return back()->withInput()->withErrors(['cantidad' => $e->getMessage()]);
+        }
 
         return redirect()->route('entradas.index')->with('success', 'Entrada actualizada y stock ajustado.');
     }
 
-    public function destroy(Entrada $entrada)
+    public function destroy(Entrada $entrada): RedirectResponse
     {
-        // Restar stock antes de eliminar
-        $producto = Producto::findOrFail($entrada->producto_id);
-        $producto->stock -= $entrada->cantidad;
-        $producto->save();
-
-        $entrada->delete();
+        try {
+            $this->stock->eliminarEntrada($entrada);
+        } catch (InsufficientStockException $e) {
+            return back()->withErrors(['stock' => $e->getMessage()]);
+        }
 
         return redirect()->route('entradas.index')->with('success', 'Entrada eliminada y stock ajustado.');
     }
 
-    public function eliminados()
+    public function eliminados(): View
     {
-        $entradas = Entrada::onlyTrashed()->with(['producto', 'proveedor'])->get();
-        return view('entradas.eliminados', compact('entradas'));
+        $registros = Entrada::onlyTrashed()->with(['producto', 'proveedor'])->latest('deleted_at')->paginate(10);
+
+        return view('entradas.eliminados', compact('registros'));
     }
 
-    public function restore($id)
+    public function restore(int $id): RedirectResponse
     {
-        $entrada = Entrada::onlyTrashed()->findOrFail($id);
-        $entrada->restore();
-        // Volver a sumar stock
-        $producto = Producto::findOrFail($entrada->producto_id);
-        $producto->stock += $entrada->cantidad;
-        $producto->save();
+        $this->stock->restaurarEntrada(Entrada::onlyTrashed()->findOrFail($id));
 
         return redirect()->route('entradas.index')->with('success', 'Entrada restaurada y stock ajustado.');
     }
 
-    public function forceDelete($id)
+    public function forceDelete(int $id): RedirectResponse
     {
-        $entrada = Entrada::onlyTrashed()->get();
-        $entrada->forceDelete();
+        Entrada::onlyTrashed()->findOrFail($id)->forceDelete();
 
-        return redirect()->route('entradas.eliminados')->with('success', 'Entrada eliminada permanentemente.');
+        return redirect()->route('entradas.eliminados')->with('success', 'Entrada eliminada de forma permanente.');
+    }
+
+    /** @return array<string, mixed> */
+    private function opciones(): array
+    {
+        return [
+            'productos' => Producto::orderBy('nombre')->get(['id', 'nombre']),
+            'proveedores' => Proveedor::orderBy('nombre')->get(['id', 'nombre']),
+        ];
     }
 }

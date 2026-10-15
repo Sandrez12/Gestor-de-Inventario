@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Salida extends Model
@@ -12,15 +13,15 @@ class Salida extends Model
 
     protected $fillable = ['producto_id', 'cliente_id', 'cantidad'];
 
-    // Relación con producto
-    public function producto()
+    protected $casts = ['cantidad' => 'integer'];
+
+    public function producto(): BelongsTo
     {
-        return $this->belongsTo(Producto::class);
+        return $this->belongsTo(Producto::class)->withTrashed();
     }
 
-    // Relación con cliente
-    public function cliente()
+    public function cliente(): BelongsTo
     {
-        return $this->belongsTo(Cliente::class);
+        return $this->belongsTo(Cliente::class)->withTrashed();
     }
 }

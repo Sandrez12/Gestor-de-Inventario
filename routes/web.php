@@ -1,59 +1,38 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ClienteController;
-use App\Http\Controllers\ProveedorController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DemoLoginController;
 use App\Http\Controllers\EntradaController;
+use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\SalidaController;
+use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('home');
-})->middleware(['auth', 'verified'])->name('home');
+Route::redirect('/', '/dashboard');
 
-Route::middleware(['auth:sanctum', 'verified'])->get('/home', function () {
-    return view('home');
-})->name('home');
+if (config('app.demo')) {
+    Route::get('/demo', DemoLoginController::class)->name('demo');
+}
 
-Route::middleware(['auth'])->group(function () {
-    // Productos
-    Route::resource('productos', ProductoController::class)->except(['show']);
-    Route::get('productos/eliminados', [ProductoController::class, 'eliminados'])->name('productos.eliminados');
-    Route::post('productos/{id}/restore', [ProductoController::class, 'restore'])->name('productos.restore');
-    Route::put('productos/{producto}', [ProductoController::class, 'update'])->name('productos.update');
-    Route::delete('productos/{id}/force', [ProductoController::class, 'forceDelete'])->name('productos.forceDelete');
-
-    // Clientes
-    Route::resource('clientes', ClienteController::class)->except(['show']);
-    Route::get('clientes/eliminados', [ClienteController::class, 'eliminados'])->name('clientes.eliminados');
-    Route::post('clientes/{id}/restore', [ClienteController::class, 'restore'])->name('clientes.restore');
-    Route::delete('clientes/{id}/force', [ClienteController::class, 'forceDelete'])->name('clientes.forceDelete');
-
-    // Proveedores
-    Route::resource('proveedores', ProveedorController::class)->except(['show'])->parameters([
-        'proveedores' => 'proveedor'
-    ]);
-    Route::get('proveedores/eliminados', [ProveedorController::class, 'eliminados'])->name('proveedores.eliminados');
-    Route::post('proveedores/{id}/restore', [ProveedorController::class, 'restore'])->name('proveedores.restore');
-    Route::delete('proveedores/{id}/force', [ProveedorController::class, 'forceDelete'])->name('proveedores.forceDelete');
-
-    // Entradas y salidas (si los necesitas)
-    Route::resource('entradas', EntradaController::class)->except(['show']);
-    Route::get('entradas/eliminados', [EntradaController::class, 'eliminados'])->name('entradas.eliminados');
-    Route::post('entradas/{id}/restore', [EntradaController::class, 'restore'])->name('entradas.restore');
-    Route::delete('entradas/{id}/force', [EntradaController::class, 'forceDelete'])->name('entradas.forceDelete');
-
-    Route::resource('salidas', SalidaController::class)->except(['show']);
-    Route::get('salidas/eliminados', [SalidaController::class, 'eliminados'])->name('salidas.eliminados');
-    Route::post('salidas/{id}/restaurar', [SalidaController::class, 'restaurar'])->name('salidas.restaurar');
-    Route::delete('salidas/{id}/force', [SalidaController::class, 'forceDelete'])->name('salidas.forceDelete');
-});
-
-// require __DIR__.'/auth.php';
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::redirect('/home', '/dashboard')->name('home');
 
-    // Tus rutas protegidas aquí
+    $papelera = function (string $recurso, string $controlador, ?string $parametro = null) {
+        $resource = Route::resource($recurso, $controlador)->except(['show']);
+        if ($parametro) {
+            $resource->parameters([$recurso => $parametro]);
+        }
+        Route::get("$recurso/eliminados", [$controlador, 'eliminados'])->name("$recurso.eliminados");
+        Route::post("$recurso/{id}/restore", [$controlador, 'restore'])->whereNumber('id')->name("$recurso.restore");
+        Route::delete("$recurso/{id}/force", [$controlador, 'forceDelete'])->whereNumber('id')->name("$recurso.forceDelete");
+    };
+
+    // Cada módulo: CRUD + papelera (soft delete) con restauración y borrado definitivo.
+    $papelera('productos', ProductoController::class);
+    $papelera('clientes', ClienteController::class);
+    $papelera('proveedores', ProveedorController::class, 'proveedor');
+    $papelera('entradas', EntradaController::class);
+    $papelera('salidas', SalidaController::class);
 });
